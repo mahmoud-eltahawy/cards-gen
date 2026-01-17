@@ -1,3 +1,4 @@
+use calamine::{Reader, Xlsx, XlsxError, open_workbook};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use specta_typescript::Typescript;
@@ -74,10 +75,23 @@ async fn path_autocomplete(path: PathExisting) -> Result<Vec<PathBuf>, String> {
     }
 }
 
+#[tauri::command]
+#[specta::specta]
+fn sheets_names(path: Option<PathBuf>) -> Result<Vec<String>, String> {
+    let Some(path) = path else {
+        return Ok(Vec::new());
+    };
+    let workbook: Xlsx<_> = open_workbook(&path).map_err(|x: XlsxError| x.to_string())?;
+    Ok(workbook.sheet_names())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder =
-        Builder::<tauri::Wry>::new().commands(collect_commands![path_autocomplete, path_exists]);
+    let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
+        path_autocomplete,
+        path_exists,
+        sheets_names
+    ]);
 
     if !cfg!(target_os = "android") {
         #[cfg(debug_assertions)]

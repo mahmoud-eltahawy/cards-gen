@@ -15,6 +15,14 @@ async pathAutocomplete(path: PathExisting) : Promise<Result<string[], string>> {
 },
 async pathExists(path: string) : Promise<PathExisting> {
     return await TAURI_INVOKE("path_exists", { path });
+},
+async sheetsNames(path: string | null) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("sheets_names", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
