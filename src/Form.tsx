@@ -1,7 +1,7 @@
 import { Accessor, createMemo, createResource, createSignal, For, Setter, Suspense } from "solid-js";
 import { effect } from "solid-js/web";
 import { commands, PathExisting } from "./tauri_bindings";
-
+import { open } from '@tauri-apps/plugin-dialog';
 
 
 function Form() {
@@ -73,6 +73,7 @@ type XlsxPathProps = {
   set_path : Setter<string | null>  
 };
 
+
 function XlsxPath(props :  XlsxPathProps) {
     let [input_path,set_input_path] = createSignal("");
     let [read_style,set_style] = createSignal("");
@@ -108,6 +109,17 @@ function XlsxPath(props :  XlsxPathProps) {
         }
     });
 
+    const choose = async () => {
+        const file = await open({
+          multiple: false,
+          directory: false,
+        });
+        if(file) {
+          console.log(file)
+          set_input_path(file)
+        }
+    };
+
     return (
       <>
         <dd class="text-2xl m-2 p-2 font-bold border-l-2 border-r-2 rounded-xl">موقع ملف الاكسل</dd>
@@ -118,6 +130,7 @@ function XlsxPath(props :  XlsxPathProps) {
                 class="border-2 w-5/6 rounded-lg p-3 text-center"
                 list="paths"
                 style={read_style()}
+                value={input_path()}
                 on:input={(ev) => {
                     let value =ev.target.value;
                     set_input_path(value);
@@ -135,6 +148,12 @@ function XlsxPath(props :  XlsxPathProps) {
                 </Suspense>
             </datalist>
         </dt>
+        <button
+          onclick={choose}
+          class="m-3 p-2 border-2 rounded-lg hover:bg-lime-700 focus:bg-lime-800 hover:cursor-pointer"
+        >
+          choose excel file
+        </button>
       </>
     )
 }
