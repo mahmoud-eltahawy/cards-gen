@@ -5,11 +5,16 @@
 
 
 export const commands = {
-async greet(name: string) : Promise<string> {
-    return await TAURI_INVOKE("greet", { name });
+async pathAutocomplete(path: PathExisting) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("path_autocomplete", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async otherGreet(args: GreetArgs) : Promise<GreetReturn> {
-    return await TAURI_INVOKE("other_greet", { args });
+async pathExists(path: string) : Promise<PathExisting> {
+    return await TAURI_INVOKE("path_exists", { path });
 }
 }
 
@@ -23,8 +28,7 @@ async otherGreet(args: GreetArgs) : Promise<GreetReturn> {
 
 /** user-defined types **/
 
-export type GreetArgs = { name: string }
-export type GreetReturn = { inner: string }
+export type PathExisting = { exists: string | null; parent_exists: string | null }
 
 /** tauri-specta globals **/
 

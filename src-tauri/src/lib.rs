@@ -1,36 +1,83 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use specta_typescript::Typescript;
-use tauri::generate_handler;
+use std::path::PathBuf;
 use tauri_specta::{Builder, collect_commands};
 
-#[derive(Serialize, Type)]
-struct GreetReturn {
-    inner: String,
-}
-
-#[derive(Deserialize, Type)]
-struct GreetArgs {
-    name: String,
+#[derive(Debug, Serialize, Deserialize, Clone, Type)]
+struct PathExisting {
+    exists: Option<PathBuf>,
+    parent_exists: Option<PathBuf>,
 }
 
 #[tauri::command]
 #[specta::specta]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn path_exists(path: PathBuf) -> PathExisting {
+    if path.exists() {
+        PathExisting {
+            exists: Some(path),
+            parent_exists: None,
+        }
+    } else if path.parent().is_some_and(|x| x.exists()) {
+        PathExisting {
+            exists: None,
+            parent_exists: Some(path),
+        }
+    } else {
+        PathExisting {
+            exists: None,
+            parent_exists: None,
+        }
+    }
 }
+
 #[tauri::command]
 #[specta::specta]
-fn other_greet(args: GreetArgs) -> GreetReturn {
-    let GreetArgs { name } = args;
-    GreetReturn {
-        inner: format!("Hello, {}! You've been greeted from Rust!", name),
+async fn path_autocomplete(path: PathExisting) -> Result<Vec<PathBuf>, String> {
+    match path {
+        PathExisting {
+            exists: Some(path),
+            parent_exists: None,
+        } => {
+            let mut enteries = tokio::fs::read_dir(&path)
+                .await
+                .map_err(|x| x.to_string())?;
+            let mut paths = Vec::new();
+            while let Some(entry) = enteries.next_entry().await.map_err(|x| x.to_string())? {
+                paths.push(entry.path());
+            }
+            Ok(paths)
+        }
+        PathExisting {
+            exists: None,
+            parent_exists: Some(path),
+        } => {
+            let parent = path.parent().unwrap();
+            let name = path.file_name().unwrap().to_str().unwrap().to_lowercase();
+            let mut enteries = tokio::fs::read_dir(&parent)
+                .await
+                .map_err(|x| x.to_string())?;
+            let mut paths = Vec::new();
+            while let Some(entry) = enteries.next_entry().await.map_err(|x| x.to_string())? {
+                let epath = entry.path();
+                if epath
+                    .file_name()
+                    .and_then(|x| x.to_str())
+                    .is_some_and(|x| x.to_lowercase().starts_with(&name))
+                {
+                    paths.push(epath);
+                }
+            }
+            Ok(paths)
+        }
+        _ => Ok(Vec::new()),
     }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = Builder::<tauri::Wry>::new().commands(collect_commands![greet, other_greet]);
+    let builder =
+        Builder::<tauri::Wry>::new().commands(collect_commands![path_autocomplete, path_exists]);
 
     if !cfg!(target_os = "android") {
         #[cfg(debug_assertions)]
@@ -49,7 +96,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         // .invoke_handler(builder.invoke_handler())
-        .invoke_handler(generate_handler![greet])
+        .invoke_handler(builder.invoke_handler())
         // .setup(move |app| {
         //     builder.mount_events(app);
         //     Ok(())
