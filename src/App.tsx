@@ -1,22 +1,19 @@
 import { createSignal } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { commands } from "./tauri_bindings";
 
 function App() {
   const [greetMsg, setGreetMsg] = createSignal("");
   const [name, setName] = createSignal("");
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name: name() }));
-  }
 
   return (
     <main>
       <h1>Welcome to Tauri + Solid</h1>
       <form
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
-          greet();
+          const res = await commands.greet(name());
+          setGreetMsg(res)
         }}
       >
         <input
