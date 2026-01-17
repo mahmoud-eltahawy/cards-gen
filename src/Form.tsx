@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { commands } from "./tauri_bindings";
 
-function App() {
+function Form() {
   const [greetMsg, setGreetMsg] = createSignal("");
   const [name, setName] = createSignal("");
 
@@ -24,8 +24,10 @@ function App() {
         <button type="submit">Greet</button>
       </form>
       <p>{greetMsg()}</p>
+      <a href="/display">test</a>
     </main>
   );
 }
 
-export default App;
+
+export default Form;

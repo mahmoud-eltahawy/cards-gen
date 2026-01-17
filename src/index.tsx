@@ -1,5 +1,14 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
-import App from "./App";
+import {Route,Router} from "@solidjs/router"
+import Form from "./Form";
+import Display from "./Display";
 
-render(() => <App />, document.getElementById("root") as HTMLElement);
+render(() => {
+    return (
+      <Router>
+        <Route path="/" component={Form}/>
+        <Route path="/display" component={Display}/>
+       </Router>
+    ) ;
+}, document.getElementById("root") as HTMLElement);
